@@ -1,0 +1,67 @@
+.navbar {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  background-color: #fff;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.navbar-brand {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #0a66c2;
+}
+
+.navbar-brand:hover {
+  color: #004182;
+}
+
+.nav-link {
+  color: #6b7280;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  transition: color 0.2s;
+}
+
+.nav-link:hover {
+  color: #111827;
+}
+
+.nav-link i {
+  margin-right: 0.25rem;
+}
+
+.btn-sign-in {
+  color: #6b7280;
+  background: transparent;
+  border: none;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.btn-sign-in:hover {
+  color: #111827;
+}
+
+.btn-join {
+  background-color: #0a66c2;
+  color: white;
+  border: none;
+  padding: 0.5rem 1.5rem;
+  border-radius: 50px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.btn-join:hover {
+  background-color: #004182;
+}
+
+@media (max-width: 767px) {
+  .navbar-nav {
+    margin-top: 1rem;
+  }
+
+  .navbar-nav .nav-link {
+    padding: 0.75rem 0;
+  }
+}
