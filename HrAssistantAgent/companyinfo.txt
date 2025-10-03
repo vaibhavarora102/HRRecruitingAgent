@@ -1,0 +1,18 @@
+Cerebras Systems Profile and Technology
+1. Company Description
+Category	Description
+Mission	Cerebras Systems designs and builds the world's fastest AI infrastructure to accelerate deep learning and generative AI workloads, delivering unmatched speed and ultra-low latency.
+Core Product	Wafer-Scale Engine (WSE): Their flagship processor (WSE-3) is the world's largest chip, built on a complete silicon wafer. It integrates all processing, memory, and communication fabric onto a single piece of silicon.
+Main Offering	CS-3 System: The complete AI supercomputer system powered by the WSE-3, offering up to 125 Petaflops of AI compute and 44GB of on-chip memory.
+Key Advantage	By eliminating the memory bottlenecks common in multi-GPU clusters, Cerebras provides up to 20x faster inference than traditional GPU solutions, critical for real-time and agentic AI applications.
+Services	Provides AI supercomputing capacity on-premise (CS-3 systems) and in the cloud (Cerebras Cloud API) for enterprise and developer use.
+
+Export to Sheets
+2. Technology & Tech Stack
+Cerebras' stack is highly specialized, covering custom hardware and software integrations:
+
+Area	Technologies / Focus
+Core Hardware	Wafer-Scale Engine (WSE-3), Custom CS-3 System, Power Delivery, and Cooling Solutions.
+AI Software	Custom compiler, scheduler, and runtime, often using C/C++ and specialized APIs.
+AI Frameworks	Optimized support for PyTorch via a custom Cerebras API and Model Zoo.
+Developer Tools	Integrations with LangChain (langchain-cerebras), Hugging Face, OpenRouter, and standard OpenAI API compatible endpoints.
