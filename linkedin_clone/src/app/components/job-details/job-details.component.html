@@ -1,0 +1,79 @@
+<div class="job-details-card" *ngIf="selectedJob; else emptyState">
+  <div class="job-header">
+    <div class="d-flex justify-content-between align-items-start">
+      <div class="d-flex gap-3">
+        <div class="job-logo-large">
+          {{ selectedJob.logo }}
+        </div>
+        <div class="flex-grow-1">
+          <h2 class="job-detail-title">{{ selectedJob.title }}</h2>
+          <p class="job-detail-company">{{ selectedJob.company }}</p>
+
+          <div class="job-meta-badges">
+            <span class="job-badge">
+              <i class="fas fa-map-marker-alt"></i>
+              {{ selectedJob.location }}
+            </span>
+            <span class="job-badge">
+              <i class="fas fa-briefcase"></i>
+              {{ selectedJob.type }}
+            </span>
+            <span class="job-badge">
+              <i class="fas fa-dollar-sign"></i>
+              {{ selectedJob.salary }}
+            </span>
+          </div>
+
+          <div class="job-stats">
+            <span class="job-stat-item">
+              <i class="far fa-clock"></i>
+              {{ selectedJob.posted }}
+            </span>
+            <span class="job-stat-item">
+              <i class="fas fa-users"></i>
+              {{ selectedJob.applicants }} applicants
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="job-actions">
+      <button class="btn btn-apply" (click)="onApplyClick()">
+        <i class="fas fa-paper-plane me-2"></i>
+        Apply Now
+      </button>
+      <button class="btn btn-save">
+        <i class="far fa-bookmark me-2"></i>
+        Save
+      </button>
+      <button class="btn btn-share">
+        <i class="fas fa-share-alt me-2"></i>
+        Share
+      </button>
+    </div>
+  </div>
+
+  <div class="job-content">
+    <h3 class="section-title">About the job</h3>
+    <p class="job-description">{{ selectedJob.description }}</p>
+
+    <h3 class="section-title">Requirements</h3>
+    <ul class="requirements-list">
+      <li *ngFor="let req of selectedJob.requirements" class="requirement-item">
+        <i class="fas fa-check-circle requirement-icon"></i>
+        <span>{{ req }}</span>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<ng-template #emptyState>
+  <div class="empty-state-card">
+    <div class="empty-state-icon">💼</div>
+    <h3 class="empty-state-title">Select a job to view details</h3>
+    <p class="empty-state-text">
+      Click on any job from the list to see more information
+    </p>
+  </div>
+</ng-template>

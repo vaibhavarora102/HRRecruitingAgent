@@ -1,0 +1,124 @@
+<div class="modal-overlay" (click)="onOverlayClick($event)">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header" *ngIf="selectedJob">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <h2 class="modal-title">Apply to {{ selectedJob.company }}</h2>
+          <p class="modal-subtitle">{{ selectedJob.title }}</p>
+        </div>
+        <button class="btn-close-modal" (click)="onCancel()" aria-label="Close">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="modal-body">
+      <form #applicationForm="ngForm">
+        <div class="form-group">
+          <label class="form-label">
+            Full Name <span class="required">*</span>
+          </label>
+          <input
+            type="text"
+            name="name"
+            [(ngModel)]="formData.name"
+            class="form-control"
+            placeholder="John Doe"
+            required
+            #nameInput="ngModel"
+          />
+          <div
+            class="form-error"
+            *ngIf="nameInput.invalid && nameInput.touched"
+          >
+            Full name is required
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            Email Address <span class="required">*</span>
+          </label>
+          <input
+            type="email"
+            name="email"
+            [(ngModel)]="formData.email"
+            class="form-control"
+            placeholder="john@example.com"
+            required
+            email
+            #emailInput="ngModel"
+          />
+          <div
+            class="form-error"
+            *ngIf="emailInput.invalid && emailInput.touched"
+          >
+            <span *ngIf="emailInput.errors?.['required']"
+              >Email is required</span
+            >
+            <span *ngIf="emailInput.errors?.['email']"
+              >Please enter a valid email</span
+            >
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            Phone Number <span class="required">*</span>
+          </label>
+          <input
+            type="tel"
+            name="phone"
+            [(ngModel)]="formData.phone"
+            class="form-control"
+            placeholder="+1 (555) 123-4567"
+            required
+            #phoneInput="ngModel"
+          />
+          <div
+            class="form-error"
+            *ngIf="phoneInput.invalid && phoneInput.touched"
+          >
+            Phone number is required
+          </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Resume/CV <span class="required">*</span></label>
+            <input
+                type="file"
+                name="resumeFile"
+                (change)="onFileSelected($event)"
+                class="form-control"
+                accept=".pdf,.doc,.docx"
+                required
+            />
+
+            <div class="form-error" *ngIf="!resumeFile && resumeTouched">
+                Resume selection is required
+            </div>
+
+            <div class="upload-status" *ngIf="resumeUploaded">
+                ✅ Resume uploaded successfully
+            </div>
+            </div>
+
+      </form>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="onCancel()">
+        Cancel
+      </button>
+      <button
+        type="button"
+        class="btn btn-primary"
+        (click)="submitApplication()"
+        [disabled]="!isFormValid()"
+      >
+        <i class="fas fa-paper-plane me-2"></i>
+        Submit Application
+      </button>
+    </div>
+  </div>
+</div>

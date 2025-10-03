@@ -1,0 +1,43 @@
+<div class="jobs-list-card">
+  <div class="jobs-list-header">
+    <h2 class="jobs-list-title">Recommended Jobs</h2>
+    <p class="jobs-list-subtitle">Based on your profile</p>
+  </div>
+
+  <div class="jobs-list-container">
+    <div
+      *ngFor="let job of jobs"
+      [class.selected]="selectedJob === job"
+      class="job-list-item"
+      (click)="selectJob(job)"
+    >
+      <div class="d-flex gap-3">
+        <div class="job-list-logo">
+          {{ job.logo }}
+        </div>
+        <div class="job-list-content">
+          <h3 class="job-list-title-text">{{ job.title }}</h3>
+          <p class="job-list-company">{{ job.company }}</p>
+
+          <div class="job-list-meta">
+            <span class="job-list-meta-item">
+              <i class="fas fa-map-marker-alt"></i>
+              {{ job.location }}
+            </span>
+          </div>
+
+          <div class="job-list-stats">
+            <span class="job-list-stat-item">
+              <i class="far fa-clock"></i>
+              {{ job.posted }}
+            </span>
+            <span class="job-list-stat-item">
+              <i class="fas fa-users"></i>
+              {{ job.applicants }} applicants
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,20 @@
+<div class="min-h-screen bg-gray-100">
+  <app-navbar></app-navbar>
+
+  <div class="container mx-auto px-4 py-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-1">
+        <app-job-list></app-job-list>
+      </div>
+
+      <div class="lg:col-span-2">
+        <app-job-details (applyClick)="showApplicationModal = true"></app-job-details>
+      </div>
+    </div>
+  </div>
+
+  <app-application-modal 
+    *ngIf="showApplicationModal"
+    (close)="showApplicationModal = false"
+  ></app-application-modal>
+</div>
