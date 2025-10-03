@@ -2,6 +2,13 @@ from typing import TypedDict, Literal, Optional
 from langgraph.graph import StateGraph, START, END
 from llmUtils import JobListing, CerebrasUtils 
 from IPython.display import Image, display
+from langchain_core.tools import tool
+from langgraph.prebuilt import ToolNode, tools_condition
+from langchain_cerebras import ChatCerebras
+from langchain.prompts import ChatPromptTemplate
+
+import os
+import smtplib
 
 class HRRecruitingState(TypedDict):
     position: str
@@ -13,18 +20,53 @@ class HRRecruitingState(TypedDict):
     resume_reviewed: Optional[bool]
     application_threshhold: Optional[int]
     current_number_of_application: Optional[int]
+    candidate_selected: Optional[bool]
     offer_letter: Optional[str]
     offer_letter_specifications: Optional[str]
     offer_letter_approved: Optional[bool]
     offer_sent: Optional[bool]
+    email_status: Optional[str]
+    messages: Optional[list[str]]
     status: Optional[Literal[
         "received_position", "jd_created", "jd_approved", "job_posted", "resume_reviewed", "offer_sent"
     ]]
 
 class HRRecruitingGraph:
     def __init__(self):
+        self.tools = [self.send_mail]
         self.graph = self._build_graph()
         self.cerebras_utils = CerebrasUtils()
+
+    @tool
+    def send_mail(subject: str, body: str, receiver_email: str):
+        """
+        Sends an email using Gmail's SMTP server.
+
+        Args:
+            subject (str): Subject of the email.
+            body (str): Body content of the email.
+            receiver_email (str): Recipient's email address.
+
+        Returns:
+            None. Prints success or error message.
+        """
+        print("#"*45)
+        print(f"Preparing to send email to {receiver_email} with subject '{subject}'")
+        print("#"*45)
+        try:
+            sender_email = os.environ["EMAIL_USER"]
+            sender_password = os.environ["EMAIL_PASSWORD"]
+            server = smtplib.SMTP('smtp.gmail.com', 587)
+            server.starttls()
+            server.login(sender_email, sender_password)
+            message = f'Subject: {subject}\n\n{body}'
+            server.sendmail(sender_email, receiver_email, message)
+            server.quit()
+            print(f"Email sent to {receiver_email}")
+            return "mail successfully sent"
+        except Exception as e:
+            print(f"Failed to send email: {e}")
+        return "mail sending failed"
 
     # Node functions
     @staticmethod
@@ -103,6 +145,7 @@ class HRRecruitingGraph:
     @staticmethod
     def candidate_selection(state):
         print("Selected candidates for interview.")
+        state['candidate_selected'] = True  # Ensure state is updated
         return {"candidate_selected": True}
 
     @staticmethod
@@ -128,6 +171,30 @@ class HRRecruitingGraph:
         print(f"--- Sent offer letter for {state['position']} ---")
         return {"offer_sent": True, "status": "offer_sent"}
 
+    def gmail_agent(self, state):
+        tool_model = ChatCerebras(model="llama-4-scout-17b-16e-instruct")
+        llm_with_tools = tool_model.bind_tools(self.tools)
+
+        # Use the last user message as input
+        messages = state.get("messages", [])
+        if not messages:
+            # Fallback to default prompt if no messages
+            prompt_str = "Draft an email to aroravaibhav102@gmail.com sending him offer letter for the position {position} and this job description {jd} and complete the Hiring process.".format(
+                position=state.get('position', ''),
+                jd=state.get('jd', '')
+            )
+            messages = [{"role": "user", "content": prompt_str}]
+        
+        # Pass messages to the LLM
+        response = llm_with_tools.invoke(messages)
+        print("Gmail agent result:", response)
+
+        # Append the LLM response to the messages list
+        state = dict(state)
+        state["messages"] = messages + [response]
+        return state
+
+
     # Router functions
     @staticmethod
     def route_jd_approval(state: HRRecruitingState) -> str:
@@ -149,7 +216,7 @@ class HRRecruitingGraph:
 
     @staticmethod
     def route_candidate_selection(state: HRRecruitingState) -> str:
-        selection_successful = state.get("candidate_selected", False)
+        selection_successful = state["candidate_selected"]
         if selection_successful:
             return "ask_for_offer_letter_specifications"
         else:
@@ -178,6 +245,8 @@ class HRRecruitingGraph:
         graphBuilder.add_node("ask_for_offer_letter_specifications", self.ask_for_offer_letter_specifications)
         graphBuilder.add_node("create_offer_letter", self.create_offer_letter)
         graphBuilder.add_node("approve_offer_letter", self.approve_offer_letter)
+        graphBuilder.add_node("gmail_agent", self.gmail_agent)
+        graphBuilder.add_node("tools", ToolNode(self.tools))
         graphBuilder.add_node("send_offer", self.send_offer)
         graphBuilder.add_node("check_application_threshold", self.check_application_threshold_node)
 
@@ -225,7 +294,11 @@ class HRRecruitingGraph:
                 "ask_for_offer_letter_specifications": "ask_for_offer_letter_specifications",
             }
         )
-        graphBuilder.add_edge("send_offer", END)
+        graphBuilder.add_edge("send_offer", "gmail_agent")
+        # graphBuilder.add_edge("gmail_agent", "tools")
+        graphBuilder.add_conditional_edges("gmail_agent", tools_condition)
+        graphBuilder.add_edge("tools", "gmail_agent")
+        graphBuilder.add_edge("gmail_agent", END)
         return graphBuilder.compile()
 
     def draw_grapy(self, save_path: str = "graph.png"):

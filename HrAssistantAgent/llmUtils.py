@@ -9,6 +9,9 @@ from typing import List
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 
+import smtplib
+import os
+
 
 
 load_dotenv()
@@ -40,7 +43,9 @@ class CerebrasUtils:
     def __init__(self):
         self.llm = ChatCerebras(model="llama-3.3-70b")
         self.JobListingParser = PydanticOutputParser(pydantic_object=JobListing)
-    
+        
+
+
 
     def create_job_description(self, position: str) -> str:
         loader = TextLoader("companyinfo.txt",encoding='utf-8')
