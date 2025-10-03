@@ -29,7 +29,14 @@ export class JobService {
       return;
     }
 
+    data.map(job => job.applicants = this.getApplicants());
+
     this.jobsSubject.next(data as Job[]);
+  }
+
+  private getApplicants(){
+    const randomNumber = Math.floor(Math.random() * 100);
+    return randomNumber;
   }
 
   /** 🔹 Select a job for modal */

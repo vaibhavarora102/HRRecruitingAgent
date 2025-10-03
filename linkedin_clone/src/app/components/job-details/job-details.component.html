@@ -2,9 +2,7 @@
   <div class="job-header">
     <div class="d-flex justify-content-between align-items-start">
       <div class="d-flex gap-3">
-        <div class="job-logo-large">
-          {{ selectedJob.logo }}
-        </div>
+        <img class="job-logo-large" src="assets/linkedin_logo.jpeg" alt="">
         <div class="flex-grow-1">
           <h2 class="job-detail-title">{{ selectedJob.title }}</h2>
           <p class="job-detail-company">{{ selectedJob.company }}</p>
@@ -27,7 +25,7 @@
           <div class="job-stats">
             <span class="job-stat-item">
               <i class="far fa-clock"></i>
-              {{ selectedJob.posted }}
+              {{ selectedJob.posted | date:'MM/dd/yyyy' }}
             </span>
             <span class="job-stat-item">
               <i class="fas fa-users"></i>

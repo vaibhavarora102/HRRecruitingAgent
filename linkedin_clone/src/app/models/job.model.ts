@@ -4,10 +4,9 @@ export interface Job {
   company: string;
   location: string;
   type: string;
-  salary: string;
-  posted: string;
-  applicants: number;
+  salary: string;  
   description: string;
   requirements: string[];
-  logo: string;
+  posted: Date;
+  applicants: number;
 }

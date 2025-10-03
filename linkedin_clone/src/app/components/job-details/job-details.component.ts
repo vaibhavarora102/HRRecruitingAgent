@@ -21,7 +21,7 @@ export class JobDetailsComponent implements OnInit {
       this.selectedJob = job;
     });
   }
-
+  
   onApplyClick(): void {
     this.applyClick.emit();
   }
