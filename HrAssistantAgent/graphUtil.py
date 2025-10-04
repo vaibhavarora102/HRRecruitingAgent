@@ -1,3 +1,4 @@
+from ast import List
 from typing import TypedDict, Literal, Optional
 from langgraph.graph import StateGraph, START, END
 from llmUtils import JobListing, CerebrasUtils 
@@ -6,9 +7,13 @@ from langchain_core.tools import tool
 from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_cerebras import ChatCerebras
 from langchain.prompts import ChatPromptTemplate
+from supabase import create_client, Client
+from dbModels.job_model import Job
+from dbModels.application_model import Application
 
 import os
 import smtplib
+import json
 
 class HRRecruitingState(TypedDict):
     position: str
@@ -17,6 +22,7 @@ class HRRecruitingState(TypedDict):
     jd_suggestions: Optional[str]
     job_posted: Optional[bool]
     job_post_json: Optional[JobListing]
+    job: Optional[Job]
     resume_reviewed: Optional[bool]
     application_threshhold: Optional[int]
     current_number_of_application: Optional[int]
@@ -36,6 +42,52 @@ class HRRecruitingGraph:
         self.tools = [self.send_mail]
         self.graph = self._build_graph()
         self.cerebras_utils = CerebrasUtils()
+        SUPABASE_URL = "https://jntavmoxtjnflnrsbulo.supabase.co"
+        SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpudGF2bW94dGpuZmxucnNidWxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0MzMyMzgsImV4cCI6MjA3NTAwOTIzOH0.QLOeL26EOGnLSSfvfod9JWcWqHqegX-GlPV-FqTcj5M"
+        self.supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    
+    def create_job(self, job: Job) -> Job:
+        """
+        Creates a job in the database.
+        Args:
+            job (Job): Job to create.
+
+        Returns:
+            Job: Created job.
+        """
+        response = self.supabase.table("jobs").insert(job.to_dict()).execute()
+        if response.data and len(response.data) > 0:
+            return Job.from_dict(response.data[0])
+        else:
+            raise Exception("Failed to create job: No data returned")
+        
+    def get_resume_paths_by_job_id(self, job_id: int):
+        """
+        Gets the resume paths by job id.
+        Args:
+            job_id (int): Job id.
+
+        Returns:
+            List[str]: List of resume paths.
+        """
+        response = self.supabase.table("applications").select("resume_url").eq("id", job_id).execute()
+        return response.data
+        
+    def update_job(self, job: Job) -> Job:
+        """
+        Updates a job in the database.
+        Args:
+            job (Job): Job to update.
+        Returns:
+            Job: Updated job.
+        """
+        if(job.id == None):
+            raise Exception("Failed to update: Job id is null")
+        response = self.supabase.table("jobs").update(job.to_dict()).eq("id", job.id).execute()
+        if response.data and len(response.data) > 0:
+            return Job.from_dict(response.data[0])
+        else:
+            raise Exception("Failed to update job: No data returned")
 
     @tool
     def send_mail(subject: str, body: str, receiver_email: str):
@@ -111,8 +163,11 @@ class HRRecruitingGraph:
         return {"job_post_json": job_post_json}
 
     def post_job(self, state):
-        print("*"*45)
-        print(f"Posted Job Listing Data: *8888*")
+        print("*"*45)   
+        job_post_json = json.loads(state['job_post_json'])
+        job = Job.from_dict(job_post_json)        
+        state['job'] = self.create_job(job)
+        print(f"Posted Job Listing Data")
         print("*"*45)
         return {"job_posted": True, "status": "job_posted"}
 
