@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  hr-recruiting-agent:
+    build: .
+    ports:
+      - "8501:8501"
+    secrets:
+      - email_user
+      - email_password
+      - cerebras_api_key
+    environment:
+      - EMAIL_USER_FILE=/run/secrets/email_user
+      - EMAIL_PASSWORD_FILE=/run/secrets/email_password
+      - CEREBRAS_API_KEY_FILE=/run/secrets/cerebras_api_key
+    volumes:
+      - ./HrAssistantAgent:/app/HrAssistantAgent
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+secrets:
+  email_user:
+    external: true
+  email_password:
+    external: true
+  cerebras_api_key:
+    external: true

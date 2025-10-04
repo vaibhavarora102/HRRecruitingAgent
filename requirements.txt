@@ -1,5 +1,47 @@
-langchain-community 0.3.30
-langgraph 0.6.8
-langchain-cerebras 0.5.0
-langchain 0.3.27
-supabase 2.21.1
+# Core LangChain and LangGraph dependencies
+langchain>=0.3.27
+langchain-community>=0.3.30
+langchain-core>=0.3.27
+langgraph>=0.6.8
+langchain-cerebras>=0.5.0
+
+# Database and API dependencies
+supabase>=2.21.1
+
+# Web framework
+streamlit>=1.50.0
+
+# Data validation and parsing
+pydantic>=2.0.0
+
+# Environment management
+python-dotenv>=1.0.0
+
+# Jupyter notebook support (for IPython.display)
+ipython>=8.0.0
+
+# Email functionality (built-in smtplib is sufficient, but for advanced features)
+# email-validator>=2.0.0  # Optional for email validation
+
+# Additional utilities that might be needed
+typing-extensions>=4.0.0
+
+# For potential PDF processing (if RAG pipeline is implemented)
+# PyPDF2>=3.0.0
+# faiss-cpu>=1.7.4
+# sentence-transformers>=2.2.0
+
+# For potential image processing
+# Pillow>=9.0.0
+
+# For potential data analysis
+# pandas>=1.5.0
+# numpy>=1.24.0
+
+# For potential async operations
+# asyncio  # Built-in
+# aiohttp>=3.8.0
+
+# For potential testing (development dependencies)
+# pytest>=7.0.0
+# pytest-asyncio>=0.21.0

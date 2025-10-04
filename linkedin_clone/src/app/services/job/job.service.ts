@@ -22,7 +22,7 @@ export class JobService {
   async loadJobs(): Promise<void> {
     const { data, error } = await this.supabaseService.client
       .from('jobs')
-      .select('*');
+      .select('*').order("posted", {ascending: false});
 
     if (error) {
       console.error('Error fetching jobs:', error.message);

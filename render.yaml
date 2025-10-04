@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: hr-recruiting-agent
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /_stcore/health
+    envVars:
+      - key: PORT
+        value: 8501
+      - key: EMAIL_USER
+        generateValue: true
+      - key: EMAIL_PASSWORD
+        generateValue: true
+      - key: CEREBRAS_API_KEY
+        generateValue: true
