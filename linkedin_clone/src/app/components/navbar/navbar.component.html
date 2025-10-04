@@ -1,36 +1,74 @@
-    <nav class="navbar navbar-expand-md navbar-light sticky-top">
-        <div class="container">
+<nav class="navbar">
+        <div class="navbar-container">
             <a class="navbar-brand" href="#">in</a>
             
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">
-                            <i class="fas fa-briefcase"></i>
-                            Jobs
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">Network</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">Messaging</a>
-                    </li>
-                </ul>
-                
-                <div class="d-flex align-items-center gap-2">
-                    <button class="btn btn-sign-in">Sign In</button>
-                    <button class="btn btn-join">Join now</button>
-                </div>
+            <div class="search-box">
+                <svg class="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M11.5 11.5L15 15M7.5 13C3.91015 13 1 10.0899 1 6.5C1 2.91015 3.91015 0 7.5 0C11.0899 0 14 2.91015 14 6.5C14 10.0899 11.0899 13 7.5 13Z" stroke="currentColor" stroke-width="1.5"/>
+                </svg>
+                <input type="text" placeholder="Search" class="search-input">
             </div>
+            
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a class="nav-link" href="#">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M23 9v2h-2v7a3 3 0 01-3 3h-4v-6h-4v6H6a3 3 0 01-3-3v-7H1V9l11-7 5 3.18V2h3v5.09z"/>
+                        </svg>
+                        <span>Home</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">
+                        <svg width="28" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 16v6H3v-6a3 3 0 013-3h3a3 3 0 013 3zm5.5-3A3.5 3.5 0 1014 9.5a3.5 3.5 0 003.5 3.5zm1 2h-2a2.5 2.5 0 00-2.5 2.5V22h7v-4.5a2.5 2.5 0 00-2.5-2.5zM7.5 2A4.5 4.5 0 1012 6.5 4.49 4.49 0 007.5 2z"/>
+                        </svg>
+                        <span>My Network</span>
+                    </a>
+                </li>
+                <li class="nav-item active">
+                    <a class="nav-link" href="#">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17 6V5a3 3 0 00-3-3h-4a3 3 0 00-3 3v1H2v4a3 3 0 003 3h14a3 3 0 003-3V6zM9 5a1 1 0 011-1h4a1 1 0 011 1v1H9zm10 9a4 4 0 003-1.38V17a3 3 0 01-3 3H5a3 3 0 01-3-3v-4.38A4 4 0 005 14z"/>
+                        </svg>
+                        <span>Jobs</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M16 3H8a3 3 0 00-3 3v13a3 3 0 003 3h8a3 3 0 003-3V6a3 3 0 00-3-3zm-8 2h8a1 1 0 011 1v10H7V6a1 1 0 011-1z"/>
+                        </svg>
+                        <span>Messaging</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M22 19h-8.28a2 2 0 11-3.44 0H2v-1a4.52 4.52 0 011.17-2.83l1-1.17h15.7l1 1.17A4.42 4.42 0 0122 18zM18.21 7.44A6.27 6.27 0 0012 2a6.27 6.27 0 00-6.21 5.44L5 13h14z"/>
+                        </svg>
+                        <span>Notifications</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">
+                        <img src="https://via.placeholder.com/24" alt="Me" class="profile-pic">
+                        <span>Me<svg width="16" height="16" viewBox="0 0 16 16" class="dropdown-icon"><path d="M8 11L3 6h10z" fill="currentColor"/></svg></span>
+                    </a>
+                </li>
+                <li class="nav-item nav-divider">
+                    <a class="nav-link" href="#">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M3 3h4v4H3zm7 4h4V3h-4zm7-4v4h4V3zM3 14h4v-4H3zm7 0h4v-4h-4zm7 0h4v-4h-4zM3 21h4v-4H3zm7 0h4v-4h-4zm7 0h4v-4h-4z"/>
+                        </svg>
+                        <span>Business<svg width="16" height="16" viewBox="0 0 16 16" class="dropdown-icon"><path d="M8 11L3 6h10z" fill="currentColor"/></svg></span>
+                    </a>
+                </li>
+                <li class="nav-item premium">
+                    <a class="nav-link" href="#">
+                        <span>Try Premium for ₹0</span>
+                    </a>
+                </li>
+            </ul>
         </div>
     </nav>
-
-    <div class="container mt-5">
-        <h2>Welcome to LinkedIn</h2>
-        <p class="text-muted">Connect with professionals and discover opportunities.</p>
-    </div>

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, EventEmitter, OnDestroy, OnInit, Output } from '@angular/core';
 import { Job } from '../../models/job.model';
 import { JobService } from '../../services/job/job.service';
 import { Subscription } from 'rxjs';
@@ -15,6 +15,7 @@ export class JobListComponent implements OnInit, OnDestroy {
   jobs: Job[] = [];
   selectedJob: Job | null = null;
   private sub = new Subscription();
+  @Output() jobSelected = new EventEmitter<void>();
 
   constructor(private jobService: JobService) {}
 
@@ -40,6 +41,7 @@ export class JobListComponent implements OnInit, OnDestroy {
 
   selectJob(job: Job): void {
     this.jobService.selectJob(job);
+    this.jobSelected.emit();
   }
 
   getJobClasses(job: Job): string {

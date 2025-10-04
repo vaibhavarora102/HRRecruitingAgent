@@ -1,5 +1,4 @@
 import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
 import { ApplicationModalComponent } from './components/application-modal/application-modal.component';
 import { JobDetailsComponent } from './components/job-details/job-details.component';
 import { JobListComponent } from './components/job-list/job-list.component';
@@ -10,7 +9,6 @@ import { CommonModule } from '@angular/common';
   selector: 'app-root',
   standalone: true,
   imports: [
-    RouterOutlet,
     CommonModule,
     NavbarComponent,
     JobListComponent,
@@ -23,4 +21,10 @@ import { CommonModule } from '@angular/common';
 export class AppComponent {
   title = 'linkedin_clone';
   showApplicationModal = false;
+  showJobDetailsModal = false;
+
+  onApplyClick(): void {
+    this.showJobDetailsModal = false;
+    this.showApplicationModal = true;
+  }
 }
