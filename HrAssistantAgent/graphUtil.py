@@ -10,6 +10,9 @@ from langchain.prompts import ChatPromptTemplate
 from supabase import create_client, Client
 from dbModels.job_model import Job
 from dbModels.application_model import Application
+from langgraph.types import interrupt, Command
+from langgraph.checkpoint.memory import MemorySaver
+import streamlit as st
 
 import os
 import smtplib
@@ -31,6 +34,7 @@ class HRRecruitingState(TypedDict):
     offer_letter_specifications: Optional[str]
     offer_letter_approved: Optional[bool]
     offer_sent: Optional[bool]
+    is_running: Optional[bool]
     email_status: Optional[str]
     messages: Optional[list[str]]
     status: Optional[Literal[
@@ -127,20 +131,29 @@ class HRRecruitingGraph:
         return {"status": "received_position"}
 
     
-    def make_jd(self, state):
+    def make_jd(self, state, log_callback=None):
         suggestion = state.get('jd_suggestions', '')
+        msg = f"Creating/Modifying JD for position: {state['position']} with suggestions: {suggestion}"
         if suggestion == "":
             print("*"*45)
             print(f"Entering JD creation for First Time")
             state['jd'] = self.cerebras_utils.create_job_description(state['position'])
-            print(f"Generated JD: {state['jd']}")
+            # st.markdown(f"Generated JD: {state['jd']}")
             print("*"*45)
+            if log_callback:
+                log_callback("make_jd", msg)
+                state['jd'] = self.cerebras_utils.create_job_description(state['position'])
+    
         else:
             print("*"*45)
             print(f"Entering JD modification with suggestions: {suggestion}")
             state['jd'] = self.cerebras_utils.change_job_description(state['jd'], suggestion)
             print(f"Modified JD: {state['jd']}")
             print("*"*45)
+            if log_callback:
+                log_callback("make_jd", msg)
+                state['jd'] = self.cerebras_utils.change_job_description(state['jd'], suggestion)
+    
         jd = state['jd']
         return {"jd": jd, "jd_suggestions": suggestion, "status": "jd_created"}
 
@@ -152,10 +165,19 @@ class HRRecruitingGraph:
 
     @staticmethod
     def approve_jd(state):
-        is_approved = True  # Hardcoded for demonstration
-        print(f"JD to approve: {state['jd']}")
-        return {"jd_approved": is_approved, "status": "jd_approved"}
+        # The key 'jd_approval_decision' will be set when the graph is resumed
+        decision = interrupt("Waiting for JD approval ('yes' or 'no').")
 
+        # Graph resumed with a decision. Process it.
+        if decision == "yes":
+            state["jd_approved"] = True
+        else:
+            state["jd_approved"] = False
+        print(f"JD approval decision received: {decision}")
+
+        # Clear the decision from state for the next graph run, if applicable
+        # This dictionary is what the graph expects as the node's output.
+        return {"status": "jd_approved", "jd_approved": state["jd_approved"]}
     
     def create_job_posting_data(self, state):
         job_post_json = self.cerebras_utils.create_post_listing_data(state['jd'])
@@ -167,7 +189,7 @@ class HRRecruitingGraph:
         job_post_json = json.loads(state['job_post_json'])
         job = Job.from_dict(job_post_json)        
         state['job'] = self.create_job(job)
-        print(f"Posted Job Listing Data")
+        # st.markdown(f"Posted Job Listing Data")
         print("*"*45)
         return {"job_posted": True, "status": "job_posted"}
 
@@ -253,7 +275,7 @@ class HRRecruitingGraph:
     # Router functions
     @staticmethod
     def route_jd_approval(state: HRRecruitingState) -> str:
-        if state.get('jd_approved'):
+        if state["jd_approved"]:
             return "create_job_posting_data"
         else:
             return "jd_suggestions"
@@ -285,6 +307,7 @@ class HRRecruitingGraph:
             return "ask_for_offer_letter_specifications"
 
     def _build_graph(self):
+        memory = MemorySaver()
         graphBuilder = StateGraph(HRRecruitingState)
         # Add Nodes
         graphBuilder.add_node("get_position", self.get_position)
@@ -349,21 +372,27 @@ class HRRecruitingGraph:
                 "ask_for_offer_letter_specifications": "ask_for_offer_letter_specifications",
             }
         )
+        # graphBuilder.add_edge("send_offer", END)
         graphBuilder.add_edge("send_offer", "gmail_agent")
         # graphBuilder.add_edge("gmail_agent", "tools")
         graphBuilder.add_conditional_edges("gmail_agent", tools_condition)
-        graphBuilder.add_edge("tools", "gmail_agent")
+        graphBuilder.add_edge("tools", END)
         graphBuilder.add_edge("gmail_agent", END)
-        return graphBuilder.compile()
+        
+        return graphBuilder.compile(checkpointer=memory)
 
     def draw_grapy(self, save_path: str = "graph.png"):
         img_bytes = self.graph.get_graph().draw_mermaid_png()
         with open(save_path, "wb") as f:
             f.write(img_bytes)
         print(f"Graph image saved to {save_path}")
-    def run(self, initial_state: dict):
-        return self.graph.invoke(initial_state)
     
+    def run(self, input_data): # Use a generic type for input_data
+        thread_id = "demo-thread-1"
+        # The invoke method handles whether input_data is a dict (new run) or a Command (resume)
+        return self.graph.invoke(input_data, config={"configurable": {"thread_id": thread_id}})
+    
+
     def print_graph_mermaid(self):
         print(self.graph.get_graph().draw_mermaid_text())
     
@@ -371,10 +400,48 @@ class HRRecruitingGraph:
 
 # ...existing code...
 
+# ... existing code ...
+
 if __name__ == "__main__":
     hr_graph = HRRecruitingGraph()
-    # hr_graph.draw_grapy()
-    result = hr_graph.run({"position": "Software Engineer"})
-
-    # print(result)
-
+    initial_state = {"position": "Software Engineer"}
+    
+    # Make sure you defined thread_id if you want to use checkpointer/run
+    thread_id = "demo-thread-1" 
+    
+    print("--- Starting Graph Execution ---")
+    # You MUST pass the config here for the checkpointer to work
+    result = hr_graph.run(initial_state)
+    
+    # NOTE: Since you're using self.graph.invoke directly in HRRecruitingGraph.run, 
+    # and not calling it with initial_state, I'm adjusting the invocation here 
+    # to use the raw self.graph.invoke with a config that includes 'thread_id'
+    # as required by the checkpointer.
+    
+    print("\n--- First Run Result ---")
+    
+    # Check for the interruption key in the result
+    if '__interrupt__' in result:
+        print("\n--- Graph Interrupted at approve_jd. Resuming with approval. ---")
+        
+        # 2. Final, Robust Attempt: Use the single positional dict and drop 'resume'.
+        # This ensures ONLY the state update is applied upon resumption.
+        decision = input("Approve (yes/no): ")
+        approval_command = Command(
+            resume =  decision# Only positional argument for state updates
+        )
+        
+        # Call graph.invoke with the Command object to continue execution
+        thread_id = "demo-thread-1"
+        final_result = hr_graph.graph.invoke(approval_command, config={"configurable": {"thread_id": thread_id}})
+        print("\n--- Final Run Result after Resume ---")
+        print(final_result)
+        
+        # Verification check
+        if final_result.get('jd_approved'):
+            print("\n✅ JD Approved and Graph Continued Successfully. Now proceeding to job posting steps.")
+        else:
+            print("\n❌ JD Approval Failed to Process. Graph might have branched to suggestions.")
+            
+    else:
+        print("Graph did not interrupt as expected. Check the 'approve_jd' node logic.")
