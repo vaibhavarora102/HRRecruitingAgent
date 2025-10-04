@@ -141,7 +141,7 @@ class PDFRAGPipeline:
         
     
 
-    def query(self, jd: str, top_k: int = 1) -> str:
+    def query(self, jd: str, top_k: int = 1) -> CandidateSummary:
         if not self.vectorstore:
             raise ValueError("❌ FAISS index not loaded. Run build_faiss_index() or load_faiss_index().")
 

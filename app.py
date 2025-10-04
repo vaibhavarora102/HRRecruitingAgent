@@ -180,10 +180,21 @@ if st.session_state.interruption_node:
         Submission_key = "Offer Letter"
 
     elif 'interview' in st.session_state.interruption_message:
-        if st.session_state.current_state.get('selected_candidate_data'):
-            with st.expander("Review Proposed Interview Schedule"):
-                st.markdown(st.session_state.current_state['selected_candidate_data'])
-        Submission_key = "Interview Schedule"
+        candidate_data = st.session_state.current_state.get('selected_candidate_data')
+        print("Candidate Data for Interview Node:", candidate_data)
+        if candidate_data:
+            with st.expander("Review Candidate Summary for Interview"):
+                # Check if it's a dict or object that can be converted to JSON/markdown
+                if isinstance(candidate_data, dict):
+                    # Display as code/JSON for clarity
+                    st.json(candidate_data)
+                elif hasattr(candidate_data, 'to_dict'):
+                    # If it's a custom class with a to_dict method
+                    st.json(candidate_data.to_dict())
+                else:
+                    # Fallback for any other string or simple object
+                    st.markdown(str(candidate_data))
+        Submission_key = "Interview"
                 
     else:
         st.info(f"Unknown interruption node: {interruption_node}. Proceeding with 'yes/no' approval.")

@@ -239,6 +239,8 @@ class HRRecruitingGraph:
         candidate_summary = rag.full_run(Resume, state['jd'])
         state['selected_candidate_data'] = candidate_summary
 
+        st.write(f"Selected Candidate: {state['selected_candidate_data']}")
+
 
         decision = interrupt("should we Proceed with interview? (yes/no)")
 
