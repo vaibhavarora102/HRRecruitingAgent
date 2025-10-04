@@ -1,18 +1,26 @@
 from ast import List
 from typing import TypedDict, Literal, Optional
 from langgraph.graph import StateGraph, START, END
-from llmUtils import JobListing, CerebrasUtils 
 from IPython.display import Image, display
 from langchain_core.tools import tool
 from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_cerebras import ChatCerebras
 from langchain.prompts import ChatPromptTemplate
 from supabase import create_client, Client
-from dbModels.job_model import Job
-from dbModels.application_model import Application
 from langgraph.types import interrupt, Command
 from langgraph.checkpoint.memory import MemorySaver
 import streamlit as st
+import time
+
+
+# from llmUtils import JobListing, CerebrasUtils 
+# from llm_rag import PDFRAGPipeline 
+# from dbModels.job_model import Job
+# from dbModels.application_model import Application
+
+from HrAssistantAgent.llmUtils import JobListing, CerebrasUtils 
+from HrAssistantAgent.dbModels.job_model import Job
+from HrAssistantAgent.dbModels.application_model import Application
 
 import os
 import smtplib
@@ -50,7 +58,7 @@ class HRRecruitingGraph:
         SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpudGF2bW94dGpuZmxucnNidWxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0MzMyMzgsImV4cCI6MjA3NTAwOTIzOH0.QLOeL26EOGnLSSfvfod9JWcWqHqegX-GlPV-FqTcj5M"
         self.supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
     
-    def create_job(self, job: Job) -> Job:
+    def create_job(self, job: Job, state) -> Job:
         """
         Creates a job in the database.
         Args:
@@ -74,7 +82,7 @@ class HRRecruitingGraph:
         Returns:
             List[str]: List of resume paths.
         """
-        response = self.supabase.table("applications").select("resume_url").eq("id", job_id).execute()
+        response = self.supabase.table("applications").select("resume_url").eq("job_id", job_id).execute()
         return response.data
         
     def update_job(self, job: Job) -> Job:
@@ -188,10 +196,10 @@ class HRRecruitingGraph:
         print("*"*45)   
         job_post_json = json.loads(state['job_post_json'])
         job = Job.from_dict(job_post_json)        
-        state['job'] = self.create_job(job)
-        # st.markdown(f"Posted Job Listing Data")
+        state['job'] = self.create_job(job, state=state)  # Save created job to state
         print("*"*45)
-        return {"job_posted": True, "status": "job_posted"}
+        # time.sleep(50) # Simulate network delay
+        return {"job_posted": True, "status": "job_posted", "job": state['job']}
 
     @staticmethod
     def check_application_threshold_node(state):
@@ -209,8 +217,18 @@ class HRRecruitingGraph:
         print(f"Tweaked Job Posting Data: {new_posting}")
         return {"job_post_json": new_posting}
 
-    @staticmethod
-    def review_resume(state):
+    
+    def review_resume(self, state):
+        print("*"*45)
+        print(f"Fetching resumes for Job ID: {state['job'].id}")
+        Resume = self.get_resume_paths_by_job_id(state['job'].id)
+        print(f"Resumes found: {Resume}")
+        # rag = PDFRAGPipeline()
+        # pdf_files = rag.download_pdfs(Resume)
+        # docs = rag.load_documents(pdf_files)
+        # rag.build_faiss_index(docs)
+
+        print("*"*45)
         print("Reviewed resumes. Moving to selection.")
         return {"resume_reviewed": True, "status": "resume_reviewed"}
 
@@ -238,10 +256,32 @@ class HRRecruitingGraph:
         return {"offer_letter": offer}
 
     @staticmethod
+    def approve_jd(state):
+        # The key 'jd_approval_decision' will be set when the graph is resumed
+        decision = interrupt("Waiting for JD approval ('yes' or 'no').")
+
+        # Graph resumed with a decision. Process it.
+        if decision == "yes":
+            state["jd_approved"] = True
+        else:
+            state["jd_approved"] = False
+        print(f"JD approval decision received: {decision}")
+
+        # Clear the decision from state for the next graph run, if applicable
+        # This dictionary is what the graph expects as the node's output.
+        return {"status": "jd_approved", "jd_approved": state["jd_approved"]}
+    @staticmethod
     def approve_offer_letter(state):
-        is_approved = True
-        print(f"Offer letter approved: {is_approved}")
-        return {"offer_letter_approved": is_approved}
+        decision = interrupt("Waiting for Offer Letter approval ('yes' or 'no').")
+        
+        # Graph resumed with a decision. Process it.
+        if decision == "yes":
+            state["offer_letter_approved"] = True
+        else:
+            state["offer_letter_approved"] = False
+        print(f"JD approval decision received: {decision}")
+        print(f"Offer letter approved: state['offer_letter_approved']")
+        return {"offer_letter_approved": state['offer_letter_approved']}
 
     @staticmethod
     def send_offer(state):
@@ -301,7 +341,8 @@ class HRRecruitingGraph:
 
     @staticmethod
     def route_offer_approval(state: HRRecruitingState) -> str:
-        if state.get('offer_letter_approved'):
+
+        if state['offer_letter_approved']:
             return "send_offer"
         else:
             return "ask_for_offer_letter_specifications"
@@ -386,6 +427,28 @@ class HRRecruitingGraph:
         with open(save_path, "wb") as f:
             f.write(img_bytes)
         print(f"Graph image saved to {save_path}")
+
+    def get_interruption_node_name(interruption_value):
+        """Safely extracts the node name from the complex interruption value."""
+        # 1. Handle the simplest case (which is what .stream() often provides)
+        if isinstance(interruption_value, str):
+            return interruption_value
+        
+        # 2. Handle the case where the value is a list/tuple (common in .invoke() final result)
+        if isinstance(interruption_value, (list, tuple)):
+            # If it's a tuple from a previous fix, take the first element
+            interruption_value = interruption_value[0]
+            
+        
+        
+        interrupt_str = str(interruption_value)
+        if 'Job Description' in interrupt_str:
+            return 'approve_jd'
+        if 'Offer Letter' in interrupt_str:
+            return 'approve_offer_letter'
+
+        # Fallback to a placeholder if we can't parse it
+        return 'unknown_approval_node'
     
     def run(self, input_data): # Use a generic type for input_data
         thread_id = "demo-thread-1"
@@ -398,50 +461,57 @@ class HRRecruitingGraph:
     
 
 
-# ...existing code...
-
-# ... existing code ...
+# ... (existing code and HRRecruitingGraph class definition) ...
 
 if __name__ == "__main__":
     hr_graph = HRRecruitingGraph()
-    initial_state = {"position": "Software Engineer"}
-    
-    # Make sure you defined thread_id if you want to use checkpointer/run
+    initial_state = {"position": "Testing Expert"}
     thread_id = "demo-thread-1" 
     
     print("--- Starting Graph Execution ---")
-    # You MUST pass the config here for the checkpointer to work
-    result = hr_graph.run(initial_state)
     
-    # NOTE: Since you're using self.graph.invoke directly in HRRecruitingGraph.run, 
-    # and not calling it with initial_state, I'm adjusting the invocation here 
-    # to use the raw self.graph.invoke with a config that includes 'thread_id'
-    # as required by the checkpointer.
-    
-    print("\n--- First Run Result ---")
-    
-    # Check for the interruption key in the result
-    if '__interrupt__' in result:
-        print("\n--- Graph Interrupted at approve_jd. Resuming with approval. ---")
+    # Start the first run
+    current_result = hr_graph.run(initial_state)
+    print("\n--- Initial Run Result ---")
+
+    # The main loop to handle interruptions
+    while '__interrupt__' in current_result:
+        # The key '__interrupt__' often contains the name of the node that interrupted
+        interruption_node = current_result['__interrupt__'] 
+        print(f"\n--- Graph Interrupted at '{interruption_node}'. Resuming with approval. ---")
         
-        # 2. Final, Robust Attempt: Use the single positional dict and drop 'resume'.
-        # This ensures ONLY the state update is applied upon resumption.
-        decision = input("Approve (yes/no): ")
-        approval_command = Command(
-            resume =  decision# Only positional argument for state updates
-        )
-        
-        # Call graph.invoke with the Command object to continue execution
-        thread_id = "demo-thread-1"
-        final_result = hr_graph.graph.invoke(approval_command, config={"configurable": {"thread_id": thread_id}})
-        print("\n--- Final Run Result after Resume ---")
-        print(final_result)
-        
-        # Verification check
-        if final_result.get('jd_approved'):
-            print("\n✅ JD Approved and Graph Continued Successfully. Now proceeding to job posting steps.")
+        # --- Handle Specific Interruption Logic ---
+        if interruption_node == 'approve_jd':
+            prompt = "Approve Job Description (yes/no): "
+        elif interruption_node == 'approve_offer': # Assuming a node named 'approve_offer'
+            prompt = "Approve Offer Letter (yes/no): "
         else:
-            print("\n❌ JD Approval Failed to Process. Graph might have branched to suggestions.")
-            
-    else:
-        print("Graph did not interrupt as expected. Check the 'approve_jd' node logic.")
+            # Fallback for unexpected interruptions
+            prompt = f"Approve action for '{interruption_node}' (yes/no): "
+
+        # Get the user input
+        decision = input(prompt)
+        print(f"User decision: {decision}")
+        # The 'resume' argument is the positional argument for the state update, 
+        # which is what the next node will process.
+        approval_command = Command(resume=decision) 
+        
+        # 2. Call graph.invoke with the Command object to continue execution
+        print(f"\n--- Resuming Graph execution from '{interruption_node}' with decision: '{decision}' ---")
+        current_result = hr_graph.graph.invoke(
+            approval_command, 
+            config={"configurable": {"thread_id": thread_id}}
+        )
+        print("\n--- Run Result after Resume ---")
+        print(current_result)
+        
+    
+    # # --- Final Conclusion after the loop breaks ---
+    # print("\n--- Graph Execution Completed ---")
+    # print("Final State:")
+    # print(current_result)
+
+    # if current_result.get('jd_approved') and current_result.get('offer_approved'): # Assuming these keys exist
+    #     print("\n✅ Entire HR Recruiting Process Completed Successfully.")
+    # else:
+    #     print("\n⚠️ Graph Execution Completed, but one or more approvals might have led to a rejected path.")
