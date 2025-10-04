@@ -108,13 +108,13 @@ class CerebrasUtils:
         response = chain.invoke({"jd": jd, "resumes": resumes})
         return response.content.splitlines()
     
-    def generate_offer_letter(self, candidate_name: str, position: str, salary: str, benefits: str) -> str:
+    def generate_offer_letter(self, candidate_name: str, position: str, details: str) -> str:
         prompt = PromptTemplate.from_template(
             "You are an HR assistant. Generate a formal offer letter for the candidate {candidate_name} for the position of {position}.\n"
-            "Include the salary of {salary} and benefits: {benefits}."
+            "Can take reference from {details}"
         )
         chain = prompt | self.llm
-        response = chain.invoke({"candidate_name": candidate_name, "position": position, "salary": salary, "benefits": benefits})
+        response = chain.invoke({"candidate_name": candidate_name, "position": position, "details": details})
         return response.content
     
   

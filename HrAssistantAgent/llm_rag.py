@@ -168,6 +168,20 @@ class PDFRAGPipeline:
         # Return as JSON
         return candidate_summary
     
+    def full_run(self, resume_list: List[Dict[str, str]], jd: str) -> CandidateSummary:
+        # 1️⃣ Download PDFs
+        pdf_files = self.download_pdfs(resume_list)
+
+        # 2️⃣ Load into documents
+        docs = self.load_documents(pdf_files)
+
+        # 3️⃣ Build FAISS DB
+        self.build_faiss_index(docs)
+
+        # 4️⃣ Query the RAG system
+        candidate_summary = self.query(jd)
+        return candidate_summary
+    
         
 
 

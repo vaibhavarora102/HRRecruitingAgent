@@ -11,16 +11,18 @@ from langgraph.types import interrupt, Command
 from langgraph.checkpoint.memory import MemorySaver
 import streamlit as st
 import time
+from langsmith import traceable
 
 
 # from llmUtils import JobListing, CerebrasUtils 
-# from llm_rag import PDFRAGPipeline 
+# from llm_rag import PDFRAGPipeline, CandidateSummary
 # from dbModels.job_model import Job
 # from dbModels.application_model import Application
 
 from HrAssistantAgent.llmUtils import JobListing, CerebrasUtils 
 from HrAssistantAgent.dbModels.job_model import Job
 from HrAssistantAgent.dbModels.application_model import Application
+from HrAssistantAgent.llm_rag import PDFRAGPipeline, CandidateSummary
 
 import os
 import smtplib
@@ -37,11 +39,13 @@ class HRRecruitingState(TypedDict):
     resume_reviewed: Optional[bool]
     application_threshhold: Optional[int]
     current_number_of_application: Optional[int]
+    schedule_interview: Optional[bool]
     candidate_selected: Optional[bool]
     offer_letter: Optional[str]
     offer_letter_specifications: Optional[str]
     offer_letter_approved: Optional[bool]
     offer_sent: Optional[bool]
+    selected_candidate_data : Optional[CandidateSummary]
     is_running: Optional[bool]
     email_status: Optional[str]
     messages: Optional[list[str]]
@@ -193,16 +197,21 @@ class HRRecruitingGraph:
         return {"job_post_json": job_post_json}
 
     def post_job(self, state):
+        print("in post job node")
         print("*"*45)   
         job_post_json = json.loads(state['job_post_json'])
         job = Job.from_dict(job_post_json)        
         state['job'] = self.create_job(job, state=state)  # Save created job to state
         print("*"*45)
-        # time.sleep(50) # Simulate network delay
+        print("sleeeeeeeeping . . . ...")
+        time.sleep(100) 
+        print("sleeeeeeeeping over . . . ...")
         return {"job_posted": True, "status": "job_posted", "job": state['job']}
+        
 
     @staticmethod
     def check_application_threshold_node(state):
+        print("Checking application threshold...")
         threshold = 5
         current_app_count = 6
         print(f"Application threshold set to: {threshold}. Current count: {current_app_count}")
@@ -212,6 +221,7 @@ class HRRecruitingGraph:
         }
 
     def tweak_job_post(self, state): 
+        print("in tweak job post node")
         print("Since we are not getting enough applications, tweaking the Job Posting slightly.")
         new_posting = self.cerebras_utils.tweak_job_description(state['jd'], state['job_post_json'])
         print(f"Tweaked Job Posting Data: {new_posting}")
@@ -219,22 +229,31 @@ class HRRecruitingGraph:
 
     
     def review_resume(self, state):
+        print("Reviewing resumes...")
         print("*"*45)
         print(f"Fetching resumes for Job ID: {state['job'].id}")
         Resume = self.get_resume_paths_by_job_id(state['job'].id)
         print(f"Resumes found: {Resume}")
-        # rag = PDFRAGPipeline()
-        # pdf_files = rag.download_pdfs(Resume)
-        # docs = rag.load_documents(pdf_files)
-        # rag.build_faiss_index(docs)
+        # Initialize RAG pipeline
+        rag = PDFRAGPipeline()
+        candidate_summary = rag.full_run(Resume, state['jd'])
+        state['selected_candidate_data'] = candidate_summary
 
+
+        decision = interrupt("should we Proceed with interview? (yes/no)")
+
+        if decision == "yes":
+            state["schedule_interview"] = True
+        else:
+            state["schedule_interview"] = False
+        
         print("*"*45)
         print("Reviewed resumes. Moving to selection.")
-        return {"resume_reviewed": True, "status": "resume_reviewed"}
+        return {"resume_reviewed": True, "status": "resume_reviewed", "selected_candidate_data": state['selected_candidate_data'], "schedule_interview": state["schedule_interview"]}
 
     @staticmethod
     def schedule_interview(state):
-        print("Scheduled interviews.")
+        print("Scheduled interviews. . . . ")
         return {"interviews_scheduled": True}
 
     @staticmethod
@@ -249,11 +268,26 @@ class HRRecruitingGraph:
         print(f"Offer letter specifications: {specs}")
         return {"offer_letter_specifications": specs}
 
-    @staticmethod
-    def create_offer_letter(state):
-        offer = f"Offer letter for position {state['position']}. Details: {state['offer_letter_specifications']}"
-        print(f"Created offer letter: {offer}")
-        return {"offer_letter": offer}
+    
+    def create_offer_letter(self, state):
+        suggestion = state.get('jd_suggestions', 'salary to be 30LPA CTC including 2 Lankh bonus, benefits to be health insurance')
+        # msg = f"Creating/Modifying JD for position: {state['position']} with suggestions: {suggestion}"
+        
+            
+        
+        print("*"*45)
+        print(f"Generating offer Letter with suggestions: {suggestion}")
+        state['offer'] = self.cerebras_utils.generate_offer_letter(
+            candidate_name=state['selected_candidate_data'].name if state['selected_candidate_data'] and 'name' in state['selected_candidate_data'] else "Candidate",
+            position=state['position'],
+            details=suggestion
+        )
+        print(f"Modified JD: {state['jd']}")
+        print("*"*45)
+            
+        jd = state['jd']
+        # return {"jd": jd, "jd_suggestions": suggestion, "status": "jd_created"}
+        return {"offer_letter": state['offer']}
 
     @staticmethod
     def approve_jd(state):
@@ -296,9 +330,10 @@ class HRRecruitingGraph:
         messages = state.get("messages", [])
         if not messages:
             # Fallback to default prompt if no messages
-            prompt_str = "Draft an email to aroravaibhav102@gmail.com sending him offer letter for the position {position} and this job description {jd} and complete the Hiring process.".format(
+            prompt_str = "Draft an email to {candidate} \n sending him offer letter for the position {position} and this job description {jd} and complete the Hiring process.".format(
                 position=state.get('position', ''),
-                jd=state.get('jd', '')
+                jd=state.get('jd', ''),
+                candidate=state['selected_candidate_data']
             )
             messages = [{"role": "user", "content": prompt_str}]
         
@@ -315,13 +350,24 @@ class HRRecruitingGraph:
     # Router functions
     @staticmethod
     def route_jd_approval(state: HRRecruitingState) -> str:
+        print(f"Routing based on JD approval: {state['jd_approved']}")
         if state["jd_approved"]:
             return "create_job_posting_data"
         else:
             return "jd_suggestions"
 
+        
+    @staticmethod
+    def route_interview_schedule(state: HRRecruitingState) -> str:
+        print(f"Routing based on interview scheduling decision: {state['schedule_interview']}")
+        if state["schedule_interview"]:
+            return "schedule_interview"
+        else:
+            return "tweak_job_post"
+
     @staticmethod
     def route_on_threshold(state: HRRecruitingState) -> str:
+        print("Checking application threshold for routing...")
         current_count = state.get('current_number_of_application', 0)
         threshold = state.get('application_threshhold', 0)
         if current_count >= threshold:
@@ -393,7 +439,16 @@ class HRRecruitingGraph:
         )
         graphBuilder.add_edge("tweak_job_post", "post_job")
         graphBuilder.add_edge("post_job", "check_application_threshold")
-        graphBuilder.add_edge("review_resume", "schedule_interview")
+        # graphBuilder.add_edge("check_application_threshold", "review_resume")
+        graphBuilder.add_conditional_edges(
+            "review_resume",
+            self.route_interview_schedule,
+            {
+                "schedule_interview": "schedule_interview",
+                "tweak_job_post": "tweak_job_post"
+            }
+        )
+        # graphBuilder.add_edge("review_resume", "schedule_interview")
         graphBuilder.add_edge("schedule_interview", "candidate_selection")
         graphBuilder.add_conditional_edges(
             "candidate_selection",
@@ -450,6 +505,7 @@ class HRRecruitingGraph:
         # Fallback to a placeholder if we can't parse it
         return 'unknown_approval_node'
     
+    @traceable
     def run(self, input_data): # Use a generic type for input_data
         thread_id = "demo-thread-1"
         # The invoke method handles whether input_data is a dict (new run) or a Command (resume)
@@ -471,6 +527,7 @@ if __name__ == "__main__":
     print("--- Starting Graph Execution ---")
     
     # Start the first run
+    hr_graph.draw_grapy()
     current_result = hr_graph.run(initial_state)
     print("\n--- Initial Run Result ---")
 
@@ -505,13 +562,3 @@ if __name__ == "__main__":
         print("\n--- Run Result after Resume ---")
         print(current_result)
         
-    
-    # # --- Final Conclusion after the loop breaks ---
-    # print("\n--- Graph Execution Completed ---")
-    # print("Final State:")
-    # print(current_result)
-
-    # if current_result.get('jd_approved') and current_result.get('offer_approved'): # Assuming these keys exist
-    #     print("\n✅ Entire HR Recruiting Process Completed Successfully.")
-    # else:
-    #     print("\n⚠️ Graph Execution Completed, but one or more approvals might have led to a rejected path.")

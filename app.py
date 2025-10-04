@@ -138,6 +138,7 @@ if st.button(
     st.session_state.workflow_log = []
     st.session_state.interruption_node = None # Clear any previous pause
     st.session_state.interruption_message = None
+    
 
     st.subheader("Workflow Log")
     log_container = st.container()
@@ -177,6 +178,12 @@ if st.session_state.interruption_node:
             with st.expander("Review Generated Offer Letter"):
                 st.markdown(st.session_state.current_state['offer_letter'])
         Submission_key = "Offer Letter"
+
+    elif 'interview' in st.session_state.interruption_message:
+        if st.session_state.current_state.get('selected_candidate_data'):
+            with st.expander("Review Proposed Interview Schedule"):
+                st.markdown(st.session_state.current_state['selected_candidate_data'])
+        Submission_key = "Interview Schedule"
                 
     else:
         st.info(f"Unknown interruption node: {interruption_node}. Proceeding with 'yes/no' approval.")
