@@ -140,16 +140,27 @@ if st.button(
     st.session_state.interruption_message = None
     
 
-    st.subheader("Workflow Log")
+    # 🌟 NEW DYNAMIC STATUS IMPLEMENTATION 🌟
+    # Define rotating messages
+    status_messages = ["Workflow Log (Starting...)", "Workflow Log (Processing...)", "Workflow Log (Running...)"]
+    status_placeholder = st.empty() # Create a placeholder for the status message
+    
     log_container = st.container()
     
     initial_state = {"position": position, "is_running": True}
 
     with log_container:
-        for step_output in run_workflow_stream(initial_state):
+        for i, step_output in enumerate(run_workflow_stream(initial_state)):
+            # Update the dynamic status on each step
+            current_status = status_messages[i % len(status_messages)]
+            status_placeholder.subheader(current_status)
+            
             with st.chat_message("Agent"):
                 st.markdown(step_output)
             time.sleep(0.2) 
+            
+    # Clear the dynamic status placeholder after the loop finishes
+    status_placeholder.empty()
             
     st.session_state.is_running = False
     st.rerun() 
@@ -215,22 +226,33 @@ if st.session_state.interruption_node:
         st.session_state.interruption_message = None
         st.session_state.is_running = True
         
-        st.subheader("Workflow Log (Resuming...)")
+        # 🌟 NEW DYNAMIC STATUS IMPLEMENTATION 🌟
+        # Define rotating messages
+        status_messages = ["Workflow Log (Resuming...)", "Workflow Log (Processing...)", "Workflow Log (Running...)"]
+        status_placeholder = st.empty() # Create a placeholder for the status message
+        
         log_container = st.container()
 
         # Resume the workflow stream
         with log_container:
-            for step_output in run_workflow_stream(approval_command):
+            for i, step_output in enumerate(run_workflow_stream(approval_command)):
+                # Update the dynamic status on each step or a frequent interval
+                current_status = status_messages[i % len(status_messages)]
+                status_placeholder.subheader(current_status)
+                
                 with st.chat_message("Agent"):
                     st.markdown(step_output)
                 time.sleep(0.1)
                 
+        # Clear the dynamic status placeholder after the loop finishes
+        status_placeholder.empty()
+                
         # Final state check after resuming
         st.session_state.is_running = False
         if st.session_state.interruption_node:
-             st.warning(f"Workflow paused again at **{st.session_state.interruption_node}**.")
+            st.warning(f"Workflow paused again at **{st.session_state.interruption_node}**.")
         else:
-             st.success("🎉 Workflow completed or continued successfully!")
+            st.success("🎉 Workflow completed or continued successfully!")
         
         st.rerun() 
 
