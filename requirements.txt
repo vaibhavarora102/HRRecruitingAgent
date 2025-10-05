@@ -20,16 +20,21 @@ python-dotenv>=1.0.0
 # Jupyter notebook support (for IPython.display)
 ipython>=8.0.0
 
-# Email functionality (built-in smtplib is sufficient, but for advanced features)
-# email-validator>=2.0.0  # Optional for email validation
+# PDF processing and document handling
+pypdf>=6.1.1
+faiss-cpu>=1.7.4
 
-# Additional utilities that might be needed
+# HTTP requests and file handling
+requests>=2.31.0
+
+# LangSmith tracing support
+langsmith>=0.1.0
+
+# Additional utilities
 typing-extensions>=4.0.0
 
-# For potential PDF processing (if RAG pipeline is implemented)
-# PyPDF2>=3.0.0
-# faiss-cpu>=1.7.4
-# sentence-transformers>=2.2.0
+# Email functionality (built-in smtplib is sufficient)
+# email-validator>=2.0.0  # Optional for email validation
 
 # For potential image processing
 # Pillow>=9.0.0
