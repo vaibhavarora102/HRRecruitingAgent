@@ -1,6 +1,6 @@
 # 🤖 HR Recruiting Agent
 
-An intelligent, AI-powered HR recruiting system that automates the entire hiring workflow from job description creation to offer letter generation using LangGraph, Cerebras AI, and advanced RAG (Retrieval-Augmented Generation) technology.
+An intelligent, AI-powered HR recruiting system that automates the entire hiring workflow from job description creation to offer letter generation using LangGraph, Cerebras AI, and advanced RAG (Retrieval-Augmented Generation) technology for Reviewing Resume. We are using LangSmith for monitoring whole flow
 
 ## 🌟 Live Demo
 
@@ -18,7 +18,7 @@ The HR Recruiting Agent is a comprehensive solution that streamlines the hiring 
 - 🔍 **Smart Resume Analysis**: RAG-powered candidate matching and evaluation
 - 📧 **Automated Email Communication**: AI-driven email generation and sending
 - 🎯 **Human-in-the-Loop**: Strategic intervention points for human oversight
-- 📊 **Real-time Monitoring**: Live workflow tracking and status updates
+- 📊 **Real-time Monitoring**: Live workflow tracking and status updates using LangSmith
 - 🌐 **Modern Web Interface**: Streamlit-based intuitive user interface
 
 ## 🏗️ System Architecture
@@ -42,7 +42,7 @@ HRRecruitingAgent/
 ### Technology Stack
 
 - **Backend**: Python, Streamlit, LangGraph, LangChain
-- **AI/ML**: Cerebras AI, OpenAI GPT-4, FAISS vector database
+- **AI/ML**: Cerebras AI,llama-3.3-70b, llama-4-scout-17b-16e-instruct, OpenAI GPT-4, FAISS vector database
 - **Database**: Supabase (PostgreSQL)
 - **Frontend**: Angular, TypeScript, Firebase Hosting
 - **Deployment**: Railway, Docker, Docker Compose
@@ -65,7 +65,7 @@ The system implements a sophisticated workflow using LangGraph with the followin
 ### 3. Resume Analysis & Candidate Selection
 - **RAG Pipeline**: Downloads and processes candidate resumes
 - **Vector Search**: Uses FAISS for semantic similarity matching
-- **AI Evaluation**: Cerebras AI analyzes candidates against job requirements
+- **AI Evaluation**: Cerebras AI analyzes candidates against job requirements using RAG based flows
 - **Output**: Ranked candidate summary with contact information
 
 ### 4. Interview & Selection
