@@ -108,7 +108,7 @@ class HRRecruitingGraph:
     @tool
     def send_mail(subject: str, body: str, receiver_email: str):
         """
-        Sends an email using Gmail's SMTP server.
+        Sends an email using Gmail's SMTP server with enhanced error handling and logging.
 
         Args:
             subject (str): Subject of the email.
@@ -116,25 +116,94 @@ class HRRecruitingGraph:
             receiver_email (str): Recipient's email address.
 
         Returns:
-            None. Prints success or error message.
+            str: Success or error message with detailed information.
         """
         print("#"*45)
         print(f"Preparing to send email to {receiver_email} with subject '{subject}'")
         print("#"*45)
+        
+        # Check environment variables
         try:
-            sender_email = os.environ["EMAIL_USER"]
-            sender_password = os.environ["EMAIL_PASSWORD"]
-            server = smtplib.SMTP('smtp.gmail.com', 587)
-            server.starttls()
-            server.login(sender_email, sender_password)
-            message = f'Subject: {subject}\n\n{body}'
-            server.sendmail(sender_email, receiver_email, message)
-            server.quit()
-            print(f"Email sent to {receiver_email}")
-            return "mail successfully sent"
+            sender_email = os.environ.get("EMAIL_USER")
+            sender_password = os.environ.get("EMAIL_PASSWORD")
+            
+            if not sender_email:
+                error_msg = "EMAIL_USER environment variable not set"
+                print(f"❌ {error_msg}")
+                return f"Error: {error_msg}"
+                
+            if not sender_password:
+                error_msg = "EMAIL_PASSWORD environment variable not set"
+                print(f"❌ {error_msg}")
+                return f"Error: {error_msg}"
+                
+            print(f"✅ Environment variables loaded - Sender: {sender_email}")
+            
         except Exception as e:
-            print(f"Failed to send email: {e}")
-        return "mail sending failed"
+            error_msg = f"Failed to load environment variables: {str(e)}"
+            print(f"❌ {error_msg}")
+            return f"Error: {error_msg}"
+        
+        # SMTP Configuration
+        smtp_server = 'smtp.gmail.com'
+        smtp_port = 587
+        
+        try:
+            print(f"🔗 Connecting to SMTP server: {smtp_server}:{smtp_port}")
+            
+            # Create SMTP connection with timeout
+            server = smtplib.SMTP(smtp_server, smtp_port, timeout=30)
+            server.set_debuglevel(1)  # Enable debug output
+            
+            print("🔐 Starting TLS encryption...")
+            server.starttls()
+            
+            print("🔑 Authenticating with Gmail...")
+            server.login(sender_email, sender_password)
+            
+            # Create proper email message
+            from email.mime.text import MIMEText
+            from email.mime.multipart import MIMEMultipart
+            
+            msg = MIMEMultipart()
+            msg['From'] = sender_email
+            msg['To'] = receiver_email
+            msg['Subject'] = subject
+            
+            msg.attach(MIMEText(body, 'plain'))
+            
+            print("📧 Sending email...")
+            server.send_message(msg)
+            server.quit()
+            
+            success_msg = f"✅ Email successfully sent to {receiver_email}"
+            print(success_msg)
+            return success_msg
+            
+        except smtplib.SMTPAuthenticationError as e:
+            error_msg = f"SMTP Authentication failed: {str(e)}. Check your email credentials and ensure you're using an App Password for Gmail."
+            print(f"❌ {error_msg}")
+            return f"Error: {error_msg}"
+            
+        except smtplib.SMTPRecipientsRefused as e:
+            error_msg = f"Recipient email address rejected: {str(e)}"
+            print(f"❌ {error_msg}")
+            return f"Error: {error_msg}"
+            
+        except smtplib.SMTPServerDisconnected as e:
+            error_msg = f"SMTP server disconnected: {str(e)}"
+            print(f"❌ {error_msg}")
+            return f"Error: {error_msg}"
+            
+        except smtplib.SMTPException as e:
+            error_msg = f"SMTP error occurred: {str(e)}"
+            print(f"❌ {error_msg}")
+            return f"Error: {error_msg}"
+            
+        except Exception as e:
+            error_msg = f"Unexpected error sending email: {str(e)}"
+            print(f"❌ {error_msg}")
+            return f"Error: {error_msg}"
 
     # Node functions
     @staticmethod
