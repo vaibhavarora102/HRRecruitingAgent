@@ -239,19 +239,27 @@ class HRRecruitingGraph:
         candidate_summary = rag.full_run(Resume, state['jd'])
         state['selected_candidate_data'] = candidate_summary
 
-        st.write(f"Selected Candidate: {state['selected_candidate_data']}")
+        print(f"Selected Candidate: {state['selected_candidate_data']}")
+        
+        print("*"*45)
+        print("Reviewed resumes. Moving to selection.")
+        return {"resume_reviewed": True, "status": "resume_reviewed", "selected_candidate_data": state['selected_candidate_data']}
 
+    @staticmethod
+    def approve_shortlisted_Candidates(state):
+        decision = interrupt("Waiting for candidate selection approval and to proceed with interview.")
 
-        decision = interrupt("should we Proceed with interview? (yes/no)")
-
+        # Graph resumed with a decision. Process it.
         if decision == "yes":
             state["schedule_interview"] = True
         else:
             state["schedule_interview"] = False
-        
-        print("*"*45)
-        print("Reviewed resumes. Moving to selection.")
-        return {"resume_reviewed": True, "status": "resume_reviewed", "selected_candidate_data": state['selected_candidate_data'], "schedule_interview": state["schedule_interview"]}
+
+        print(f"Candidate selection decision received: {decision}")
+
+        # Clear the decision from state for the next graph run, if applicable
+        # This dictionary is what the graph expects as the node's output.
+        return {"schedule_interview": state["schedule_interview"]}
 
     @staticmethod
     def schedule_interview(state):
@@ -407,6 +415,7 @@ class HRRecruitingGraph:
         graphBuilder.add_node("post_job", self.post_job)
         graphBuilder.add_node("tweak_job_post", self.tweak_job_post)
         graphBuilder.add_node("review_resume", self.review_resume)
+        graphBuilder.add_node("approve_shortlisted_Candidates", self.approve_shortlisted_Candidates)
         graphBuilder.add_node("schedule_interview", self.schedule_interview)
         graphBuilder.add_node("candidate_selection", self.candidate_selection)
         graphBuilder.add_node("ask_for_offer_letter_specifications", self.ask_for_offer_letter_specifications)
@@ -439,11 +448,12 @@ class HRRecruitingGraph:
                 "tweak_job_post": "tweak_job_post"
             }
         )
+        graphBuilder.add_edge("review_resume", "approve_shortlisted_Candidates")
         graphBuilder.add_edge("tweak_job_post", "post_job")
         graphBuilder.add_edge("post_job", "check_application_threshold")
         # graphBuilder.add_edge("check_application_threshold", "review_resume")
         graphBuilder.add_conditional_edges(
-            "review_resume",
+            "approve_shortlisted_Candidates",
             self.route_interview_schedule,
             {
                 "schedule_interview": "schedule_interview",
